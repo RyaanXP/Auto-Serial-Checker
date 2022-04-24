@@ -1,1 +1,1 @@
-# Auto-Serial-Checker
+# Auto-Serials-Checker
