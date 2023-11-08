@@ -1,0 +1,159 @@
+import logging
+from json import dumps
+import requests
+from account_generator.constants import API, WEBSITE_KEY, CONFIG_URL, REGIONS, LOCALES
+
+class GenerateAccount:
+    def __init__(self, debug=False, proxy=None):
+        self.session = requests.session()
+
+        # Configure proxy
+        if proxy:
+            self.session.proxies = {'https': proxy}
+
+        # Configure logging
+        if debug:
+            logging.basicConfig(filename='account_generator.log', level=logging.DEBUG,
+                                format='%(asctime)s - %(levelname)s - %(message)s')
+        else:
+            logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    def get_rqdata_and_cookies(self):
+        try:
+            data = self.session.get(CONFIG_URL).json()
+            captcha = data.get('captcha', {}).get('hcaptcha')
+            return captcha.get('rqdata')
+        except Exception as e:
+            logging.error(f"Error getting rqdata and cookies: {str(e)}")
+            raise
+
+    def generate_account(self, password, username, region, date_of_birth="2001-12-06", email="xes22scboy32@gmail.com"):
+        try:
+            region_value = REGIONS.get(region.upper())
+            if region_value is None:
+                raise ValueError("Invalid region")
+
+            logging.info("Getting rqdata")
+            rqdata = self.get_rqdata_and cookies()
+
+            logging.info(f"RQDATA: {rqdata}")
+
+            payload = {
+                "campaign": "",
+                "confirm_password": password,
+                "date_of_birth": date_of_birth,
+                "email": email,
+                "locale": LOCALES.get(region),
+                "newsletter": False,
+                "password": password,
+                "product_id": "league_of_legends",
+                "region": region_value,
+                "tou_agree": True,
+                "username": username
+            }
+
+            response = self.session.post(url=API, data=dumps(payload),
+                                         headers={'Content-Type': 'application/json'})
+
+            logging.info(f"API response: {response}")
+            return response
+
+        except Exception as e:
+            logging.error(f"Error generating account: {str(e)}")
+            raise
+
+……………………….
+import logging
+import os
+import random
+import string
+import sys
+import threading
+import tkinter as tk
+from ctypes import windll
+
+import customtkinter
+from CTkMessagebox import CTkMessagebox
+from PIL import ImageTk, Image
+
+from account_generator import GenerateAccount
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
+class App(customtkinter.CTk):
+    def __init__(self):
+        super().__init__()
+
+        # ... (codice iniziale rimasto invariato)
+
+        # Creating bottom frame frame
+        self.bottom_frame = tk.Frame(self, bg="#101010", width=583, height=177)
+        self.bottom_frame.place(x=0, y=672)
+
+        # ... (codice rimanente invariato)
+
+    def generate_account(self):
+        num_accounts = self.nof_entry.get()
+
+        accounts = []
+        if not num_accounts.isdigit() or int(num_accounts) <= 0:
+            CTkMessagebox(title="Invalid Input",
+                          message="Please enter a valid positive integer for the number of accounts.", icon="cancel")
+
+            return
+
+        num_accounts = int(num_accounts)
+
+        try:
+            account_generator = GenerateAccount()
+            # Rimuovi la seguente riga che imposta la chiave CAPMONSTER
+            # account_generator.CAPMONSTER_KEY = self.CapMonster.get()  # Set the CAPMONSTER_KEY
+
+            for _ in range(num_accounts):
+                self.create_button.configure(text=f'Generating ({_} / {num_accounts})', state='disabled')
+                password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+                username = ''.join(random.choices(string.ascii_lowercase, k=8))
+                Region = self.Region.get()
+                response = account_generator.generate_account(password, username, Region)
+
+                accounts.append(f"Username: {username}, Password: {password}, Region: {Region}")
+
+            # Save the accounts to a text file
+            file_name = f"{num_accounts}x{Region} {random.randint(1000, 12345)}.txt"
+            with open(file_name, "w") as file:
+                file.write("\n".join(accounts))
+
+            CTkMessagebox(title="Accounts Saved", message=f"Accounts saved to {file_name}", icon="info")
+
+            self.create_button.configure(text=f'Create', state='normal')
+        except Exception as e:
+
+            CTkMessagebox(title="Error", message=f"An error occurred: {str(e)}", icon="cancel")
+
+    def generate_accounts_in_thread(self):
+        num_accounts = self.nof_entry.get()
+
+        if num_accounts.isdigit() and int(num_accounts) > 0:
+            thread = threading.Thread(target=self.generate_account)
+            thread.start()
+
+        else:
+
+            CTkMessagebox(title="Invalid Input",
+                          message="Please enter a valid positive integer for the number of accounts.", icon="cancel",
+                          bg_color='#141414', fg_color='#1D1D1D')
+
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
